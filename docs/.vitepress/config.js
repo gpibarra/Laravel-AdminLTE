@@ -5,6 +5,17 @@ export default {
     base: '/Laravel-AdminLTE',
     themeConfig: {
         logo: '/imgs/AdminLTELogo.ico',
+        nav: [
+            {
+                text: 'Version 4 (current)',
+                items: [
+                    {
+                        text: 'Version 3',
+                        link: 'https://gpibarra.github.io/Laravel-AdminLTE/v3/'
+                    }
+                ]
+            },
+        ],
         sidebar: [
             {
                 text: 'Overview',

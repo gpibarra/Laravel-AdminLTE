@@ -6,7 +6,9 @@ name: Build and Deploy Documentation
 on:
   # Triggers the workflow on push events for the "master" branch.
   push:
-    branches: [master]
+    branches:
+      - master
+      - v3
 
   # Allows you to run this workflow manually from the Actions tab.
   workflow_dispatch:
@@ -50,9 +52,38 @@ jobs:
       - name: Install Node.js Dependencies
         run: npm ci
 
-      # Build documentation with VitePress
-      - name: Build Docs
-        run: npm run docs:build
+      # Define the branches and their corresponding base paths and build documentation for each configured branch
+      - name: Build Documentation for All Configured Branches
+        run: |
+          # Config
+          BASEREPO='/Laravel-AdminLTE'
+          CONFIG='[
+            {"branch": "master", "folder": ""},
+            {"branch": "v3", "folder": "/v3"}
+          ]'
+
+          OUTPUT_DIR=docs/output
+
+          # Build
+          echo "$CONFIG" | jq -c '.[]' | while read item; do
+            BRANCH=$(echo "$item" | jq -r '.branch')
+            FOLDER=$(echo "$item" | jq -r '.folder')
+            BASE=$BASEREPO$FOLDER$FOLDER
+
+            echo "Switching to branch: $BRANCH"
+            git fetch origin $BRANCH
+            git checkout $BRANCH
+
+            echo "Building branch: $BRANCH with base: $BASE"
+
+            # # Establecer la variable BASE_URL para VitePress
+            # export BASE_URL=$BASE
+            npm run docs:build
+
+            # Copiar los archivos al directorio de salida correspondiente
+            mkdir -p $OUTPUT_DIR/$FOLDER
+            cp -r docs/.vitepress/dist/* $OUTPUT_DIR/$FOLDER/
+          done
 
       # Package and upload the website documentation as an artifact (named
       # github-pages by default) to be used on the deployment job. An artifact
@@ -61,7 +92,7 @@ jobs:
       - name: Upload Docs Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: docs/output
 
   # Job for deploy the documentation to Github Pages.
   deploy:

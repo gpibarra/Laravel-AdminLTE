@@ -2,9 +2,21 @@ export default {
     title: "Laravel AdminLTE",
     description: "Easy AdminLTE integration with Laravel",
     lastUpdated: true,
-    base: '/Laravel-AdminLTE',
+    base: '/Laravel-AdminLTE/v3',
     themeConfig: {
         logo: '/imgs/AdminLTELogo.ico',
+        nav: [
+            {
+                text: 'Version 3',
+                items: [
+                    {
+                        text: 'Version 4 (current)',
+                        link: '../../Laravel-AdminLTE/',
+                        target: '_self'
+                    }
+                ]
+            },
+        ],
         sidebar: [
             {
                 text: 'Overview',

@@ -9,6 +9,18 @@ export default {
             level: [2, 3],
             label: 'On this page'
         },
+        nav: [
+            {
+                text: 'Version 4',
+                items: [
+                    {
+                        text: 'Version 3 (legacy)',
+                        link: '/v3/',
+                        target: '_self'
+                    }
+                ]
+            },
+        ],
         sidebar: [
             {
                 text: 'Getting Started',

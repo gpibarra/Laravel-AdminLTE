@@ -4,9 +4,11 @@
 name: Build and Deploy Documentation
 
 on:
-  # Triggers the workflow on push events for the "master" branch.
+  # Triggers the workflow on push events for the documentation branches.
   push:
-    branches: [master]
+    branches:
+      - master
+      - v3.x
 
   # Allows you to run this workflow manually from the Actions tab.
   workflow_dispatch:
@@ -46,13 +48,48 @@ jobs:
       - name: Setup Github Pages
         uses: actions/configure-pages@v5
 
-      # Install Node.js dependencies.
-      - name: Install Node.js Dependencies
-        run: npm ci
+      # Build the documentation for every configured branch, placing each one
+      # in its own subfolder so all versions are deployed side by side.
+      - name: Build Documentation for All Configured Branches
+        run: |
+          set -euo pipefail
 
-      # Build documentation with VitePress
-      - name: Build Docs
-        run: npm run docs:build
+          # Config: each branch is published into its own subfolder ("" is the
+          # site root). The VitePress "base" is already set per branch in its
+          # own docs/.vitepress/config.js, so it is not overridden here.
+          CONFIG='[
+            {"branch": "master", "folder": ""},
+            {"branch": "v3.x", "folder": "v3"}
+          ]'
+
+          # Keep the output outside the working tree, so switching branches
+          # cannot wipe or interfere with the already built versions.
+          OUTPUT_DIR="$RUNNER_TEMP/docs-output"
+          mkdir -p "$OUTPUT_DIR"
+
+          # Build. A process substitution is used instead of a pipe so the loop
+          # runs in the current shell and a failure aborts the whole step.
+          while read -r item; do
+            BRANCH=$(echo "$item" | jq -r '.branch')
+            FOLDER=$(echo "$item" | jq -r '.folder')
+
+            echo "Switching to branch: $BRANCH"
+            git fetch --depth=1 origin "$BRANCH"
+            git checkout -f "FETCH_HEAD"
+
+            echo "Building branch: $BRANCH into folder: ${FOLDER:-<root>}"
+
+            # Dependencies are branch specific, so reinstall them per branch.
+            npm ci
+            npm run docs:build
+
+            # Copy the generated site into its target subfolder.
+            mkdir -p "$OUTPUT_DIR/$FOLDER"
+            cp -r docs/.vitepress/dist/. "$OUTPUT_DIR/$FOLDER/"
+          done < <(echo "$CONFIG" | jq -c '.[]')
+
+          # Expose the output path to the upload step.
+          echo "DOCS_OUTPUT_DIR=$OUTPUT_DIR" >> "$GITHUB_ENV"
 
       # Package and upload the website documentation as an artifact (named
       # github-pages by default) to be used on the deployment job. An artifact
@@ -61,7 +98,7 @@ jobs:
       - name: Upload Docs Artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: docs/.vitepress/dist
+          path: ${{ env.DOCS_OUTPUT_DIR }}
 
   # Job for deploy the documentation to Github Pages.
   deploy:

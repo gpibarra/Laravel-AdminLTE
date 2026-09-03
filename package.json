@@ -18,6 +18,6 @@
     "author": "Jeroen Noten <jeroennoten@me.com>",
     "license": "MIT",
     "devDependencies": {
-        "vitepress": "^1.6.0"
+        "vitepress": "^2.0.0-alpha.19"
     }
 }
